@@ -18,15 +18,7 @@
             if(!activeTabClass) activeTabClass = 'active';
             if(!activeTabContentClass) activeTabContentClass = 'active';
 
-            var tabs = element.find(tabsSelector).disableSelection();
-            var active = tabs.filter('.'+activeTabClass).prevAll().length + 1;
-            tabs.removeClass(activeTabClass);
-
-            tabs.eq(active-1).addClass(activeTabClass);
-
-            element.find(tabsContentSelector).removeClass(activeTabContentClass).eq(active-1).addClass(activeTabContentClass).trigger('tabs.show');
-
-            tabs.click(function(event) {
+            element.find(tabsSelector).click(function(event) {
                 event.preventDefault();
 
                 var history = true;
@@ -52,6 +44,8 @@
                     window.history.pushState({tab:target}, '', target);
                 }
 
+                element.find(tabsContentSelector).removeClass(activeTabContentClass);
+
                 element.find(tabsSelector).removeClass(activeTabClass);
                 tab.addClass(activeTabClass);
 
@@ -59,25 +53,27 @@
                     element.find(tabsContentSelector).removeClass(activeTabContentClass);
                     element.find(target).addClass(activeTabContentClass).trigger('tabs.show');
                 } else {
+                    element.find(tabsContentSelector).removeClass(activeTabContentClass);
                     var id;
-                    if (!tab.data('loaded-id')) {
+                    if (!tab.data('tabs-loaded-id')) {
                         id = 'tab'+(++tabs_counter);
-                        tab.data('loaded-id', id);
+                        tab.data('tabs-loaded-id', id);
                         $.ajax(target, {
                             success: function(html) {
-                                var wrap = $('<div>'+html+'</div>');
-                                wrap.find(tabsContentSelector).addClass(activeTabContentClass).attr('id', id);
-                                wrap.appendTo(element);
-                                wrap.trigger('tabs.show');
+                                $('<div>'+html+'</div>')
+                                    .addClass(tabsContentSelector)
+                                    .addClass(activeTabContentClass)
+                                    .attr('id', id)
+                                    .appendTo(element)
+                                    .trigger('tabs.show');
                             }
                         });
                     } else {
-                        id = $(this).data('loaded-id');
-                        element.find(tabsContentSelector).removeClass(activeTabContentClass);
+                        id = $(this).data('tabs-loaded-id');
                         element.find('#'+id).addClass(activeTabContentClass).trigger('tabs.show');
                     }
                 }
-            });
+            }).disableSelection().filter('.'+activeTabClass+',:first').first().trigger('click');
         });
     }
 })(jQuery);
