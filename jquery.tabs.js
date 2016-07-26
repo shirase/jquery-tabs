@@ -1,24 +1,20 @@
 (function($) {
-    $(window).on('popstate', function(event) {
-        if (event.originalEvent.state && event.originalEvent.state.tab) {
-            $('a[href="'+event.originalEvent.state.tab+'"]').trigger('click');
-        }
-    });
-
-    var tabs_counter = 0;
-    $.fn.tabs = function(tabsSelector, tabsContentSelector, activeTabClass, activeTabContentClass) {
+    $.fn.tabs = function(tabsClass, tabsContentClass, activeTabClass, activeTabContentClass) {
         this.each(function() {
             var element = $(this);
 
             if(element.data('tabs')) return;
             element.data('tabs', true);
 
-            if(!tabsSelector) tabsSelector = '.tab';
-            if(!tabsContentSelector) tabsContentSelector = '.tab-content';
+            if(!tabsClass) tabsClass = 'tab';
+            if(!tabsContentClass) tabsContentClass = 'tab-content';
             if(!activeTabClass) activeTabClass = 'active';
             if(!activeTabContentClass) activeTabContentClass = 'active';
 
-            element.find(tabsSelector).click(function(event) {
+            var $tabs = element.find('.'+tabsClass);
+            var $tabContents = element.find('.'+tabsContentClass);
+
+            $tabs.click(function(event) {
                 event.preventDefault();
 
                 var history = true;
@@ -44,36 +40,60 @@
                     window.history.pushState({tab:target}, '', target);
                 }
 
-                element.find(tabsContentSelector).removeClass(activeTabContentClass);
-
-                element.find(tabsSelector).removeClass(activeTabClass);
+                $tabContents.removeClass(activeTabContentClass);
+                $tabs.removeClass(activeTabClass);
                 tab.addClass(activeTabClass);
 
                 if (target.substr(0, 1)=='#') {
-                    element.find(tabsContentSelector).removeClass(activeTabContentClass);
                     element.find(target).addClass(activeTabContentClass).trigger('tabs.show');
                 } else {
-                    element.find(tabsContentSelector).removeClass(activeTabContentClass);
-                    var id;
-                    if (!tab.data('tabs-loaded-id')) {
-                        id = 'tab'+(++tabs_counter);
-                        tab.data('tabs-loaded-id', id);
+                    var contentId;
+                    var split = target.split('#');
+                    if(split && split.length==2) {
+                        contentId = split[1];
+                    }
+
+                    var content = tab.data('tab-content');
+                    if(content) {
+                        content.addClass(activeTabContentClass).trigger('tabs.show');
+                    } else {
                         $.ajax(target, {
                             success: function(html) {
-                                $('<div>'+html+'</div>')
-                                    .addClass(tabsContentSelector)
-                                    .addClass(activeTabContentClass)
-                                    .attr('id', id)
-                                    .appendTo(element)
-                                    .trigger('tabs.show');
+                                var content = $('<div>'+html+'</div>');
+                                if(contentId) {
+                                    var c = element.find('#'+contentId);
+                                    c.addClass(activeTabContentClass).html(content.html()).trigger('tabs.show');
+                                    tab.data('tab-content', c);
+                                } else {
+                                    content.addClass(tabsContentClass).addClass(activeTabContentClass).appendTo(element).trigger('tabs.show');
+                                    $tabContents = $tabContents.add(content);
+                                    tab.data('tab-content', content);
+                                }
                             }
                         });
-                    } else {
-                        id = $(this).data('tabs-loaded-id');
-                        element.find('#'+id).addClass(activeTabContentClass).trigger('tabs.show');
                     }
                 }
-            }).disableSelection().filter('.'+activeTabClass+',:first').first().trigger('click');
+            });
+
+            $(window).on('popstate', function(event) {
+                if (event.originalEvent.state && event.originalEvent.state.tab) {
+                    element.find('a[href="'+event.originalEvent.state.tab+'"]').trigger('click');
+                }
+            });
+
+            if(location.hash) {
+                var e = element.find('a[href="'+location.hash+'"]');
+                if(e.length) {
+                    e.trigger('click');
+                    return;
+                }
+            }
+
+            if($tabs.filter('.'+activeTabClass).length) {
+                $tabs.filter('.'+activeTabClass).first().trigger('click');
+            } else {
+                $tabs.filter(':first').first().trigger('click');
+            }
         });
     }
 })(jQuery);
